@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project version="4">
+  <component name="ProjectModuleManager">
+    <modules>
+      <module fileurl="file://$PROJECT_DIR$/advanced_algorithm_and_data_structure.iml" filepath="$PROJECT_DIR$/advanced_algorithm_and_data_structure.iml" />
+      <module fileurl="file://$PROJECT_DIR$/assignmentFour/assignmentFour.iml" filepath="$PROJECT_DIR$/assignmentFour/assignmentFour.iml" />
+    </modules>
+  </component>
+</project>

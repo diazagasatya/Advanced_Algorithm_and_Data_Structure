@@ -1,0 +1,422 @@
+// CIS 1C Assignment #2
+
+import cs_1c.*;
+import java.util.*;
+
+//------------------------------------------------------
+public class Foothill
+{
+   final static int MAT_SIZE = 100000;
+   // -------  main --------------
+   public static void main(String[] args) throws Exception
+   {
+      // 100000 x 100000 filled with 0
+      int k;
+      SparseMat<Double> mat
+            = new SparseMat<Double>(MAT_SIZE, MAT_SIZE, 0.);
+
+      System.out.println("-----Part A----");
+      System.out.println("-----Show Sub Square Before Mutators----");
+      mat.showSubSquare(0, 12);
+      System.out.println();
+
+      // test mutators
+      for (k = 0; k < 10; k++)
+      {
+         mat.set(k, k, k*1.);
+         mat.set(4, k, k*10.);
+         mat.set(k, 4, -k*10.);
+      }
+
+      System.out.println("-----Show Sub Square After Mutators----");
+      mat.showSubSquare(0, 12);
+
+      // Testing purposes 1
+      try {
+         System.out.println("-----Accessing Mutators----");
+         System.out.println("Row 4, Column 4 : " + mat.get(4,4));
+         System.out.println("Row 9, Column 4 : " + mat.get(9,4));
+         System.out.println("Row 11, Column 8 : " + mat.get(11,8));
+         System.out.println("Row 100023, Column 32 : " + mat.get(100023,32));
+      } catch (IndexOutOfBoundsException e) {
+         System.out.println("Out-of-bound range accessor");
+      }
+      // Testing purposes 2
+      System.out.println("-----Bounds Checking----");
+      System.out.println("Out-of-bound row 100001 try : "
+            + mat.set(100001,300,32.3));
+      System.out.println("Out-of-bound column 100021 try : "
+            + mat.set(10000,100021,13.3));
+      System.out.println("Out-of-bound row -100 & column 100051 try : "
+            + mat.set(-100,100051,17.3));
+      System.out.println("-------End of Testing------");
+
+      System.out.println("\n----PART B----");
+
+      SparseMat<Double> mat2 = (SparseMat<Double>)mat.clone();
+
+      for (k = 0; k < 10; k++)
+      {
+         mat.set(k, k, 1.);
+         mat.set(4, k, 10.);
+         mat.set(k, 4, -10.);
+      }
+
+      System.out.println("-----Show Sub Square mat 2nd mutation----");
+      mat.showSubSquare(0, 12);
+      System.out.println();
+      System.out.println("-----Show Sub Square mat2 clone unchanged----");
+      mat2.showSubSquare(0, 12);
+
+      // Testing purposes 3
+      try {
+         System.out.println("-----Accessing Mutators----");
+         System.out.println("Row 9, Column 4 : " + mat2.get(9,4));
+         System.out.println("Row 8, Column 4 : " + mat2.get(8,4));
+         System.out.println("Row 7, Column 4 : " + mat2.get(7,4));
+         System.out.println("Row 100032, Column 22 : " + mat2.get(100032,22));
+      } catch (IndexOutOfBoundsException e) {
+         System.out.println("Out-of-bound range accessor");
+      }
+      // Testing purposes 4
+      System.out.println("-----Bounds Checking----");
+      System.out.println("Out-of-bound row 100101 try : "
+            + mat2.set(100101,300,32.3));
+      System.out.println("Out-of-bound column 110000 try : "
+            + mat2.set(110000,100021,13.3));
+      System.out.println("Out-of-bound row -99 & column 123003 try : "
+            + mat2.set(-99,123003,17.3));
+      System.out.println("-------End of Testing------");
+
+   }
+}
+
+//--------------- Class SparseMat Definition ---------------
+class SparseMat<E> implements Cloneable {
+
+   protected int rowSize, columnSize;
+   protected E defaultValue;
+   protected FHarrayList<FHlinkedList<MatNode>> rows;
+
+   /**
+    * A constructor that stores rowSize, columnSize, defaultValue
+    * and instantiate a new empty Sparse Matrix
+    * @param numRows       Number of Rows
+    * @param numCols       Number of Columns
+    * @param defaultVal       subset_sum_problem.Default value given
+    */
+   public SparseMat(int numRows, int numCols, E defaultVal) {
+
+      if(!(validIndex(numRows)) && (validIndex(numCols))) {
+         return;
+      }
+      // Establishes the sizes and default value
+      rowSize = numRows;
+      columnSize = numCols;
+      defaultValue = defaultVal;
+
+      allocateEmptyMatrix();
+   }
+
+   /**
+    * Allocate all the memory of an empty matrix
+    */
+   public void allocateEmptyMatrix() {
+      // Create an array list of references of size numRows
+      rows = new FHarrayList<>(rowSize);
+      FHlinkedList<MatNode> list;
+
+      // Initialize linked list in every rows
+      for(int a = 0; a < rowSize; a++) {
+         list = new FHlinkedList<>();
+         MatNode newNode = new MatNode();
+         list.add(newNode);
+         rows.add(list);
+      }
+   }
+
+   /**
+    * An accessor that returns the object stored in row r and column c.
+    * @param r       Row number
+    * @param c       Column number
+    * @return returnObject       Generic object of given row and column
+    * @throws IndexOutOfBoundsException
+    */
+   public E get(int r, int c) throws IndexOutOfBoundsException {
+      // Throws invalid indexes
+      if(!(indexViolation(r,c))) {
+         throw new IndexOutOfBoundsException();
+      }
+      FHlinkedList<MatNode> referenceRow = rows.get(r);
+      ListIterator<MatNode> iteration;
+      MatNode returnObject;
+
+      for(iteration = referenceRow.listIterator(); iteration.hasNext(); ) {
+         returnObject = iteration.next();
+         if(returnObject.col == c) {
+            return returnObject.data;
+         }
+      }
+      return defaultValue;
+   }
+
+   /**
+    * Validation for matrix row and column bounds
+    * @param row       Row number
+    * @param column       Column number
+    * @return validation       Boolean validation value
+    */
+   public boolean indexViolation(int row, int column) {
+      boolean validation = false;
+      if(row > rowSize || column > columnSize) {
+         return validation;
+      }
+      else if(row < 0 || column < 0) {
+         return validation;
+      }
+      validation = true;
+      return validation;
+   }
+
+   /**
+    * A mutator that set the data value of an object by the given row and column index to a given data x.
+    * @param r       Row number
+    * @param c       Column number
+    * @param x       Integer Value
+    * @return validChange       Validity of mutator
+    */
+   public boolean set(int r, int c, E x) {
+      if(!(indexViolation(r,c))) { // Throws invalid indexes
+         return false;
+      }
+      FHlinkedList<MatNode> referenceRow = rows.get(r);
+      ListIterator<MatNode> iteration = referenceRow.listIterator();
+      MatNode currentObject;
+      if(!(x.equals(defaultValue))) {
+         while(iteration.hasNext()) {
+            currentObject = iteration.next();
+            if(currentObject.col == c && (currentObject.data != defaultValue)) {
+               currentObject.data = x;
+               return true;
+            }
+         }
+         MatNode newNode = new MatNode(c,x);
+         referenceRow.add(newNode);
+         return true;
+      }
+      else if(x.equals(defaultValue)) {
+         while(iteration.hasNext()) {
+            currentObject = iteration.next();
+            if(currentObject.col == c && (currentObject.data != defaultValue)) {
+               referenceRow.remove(currentObject);
+               return true;
+            }
+         }
+      }
+      return false;
+   }
+
+   /**
+    * Resetting the LinkedLists without changing the size of Sparse Matrix
+    */
+   public void clear() {
+      for(int a = 0; a < rows.size(); a++) {
+         rows.get(a).clear();
+      }
+   }
+
+   /**
+    * A display method from a given set of ranges
+    * @param start       Starting row
+    * @param size       Number of columns
+    */
+   public void showSubSquare(int start, int size) {
+      int length = start + size - 1;
+      String defaultValueString = String.format("%6.1f", defaultValue);
+      Boolean internalCondition = false;
+      MatNode currentNode;
+
+      for(int a = start; a <= length; a++) {
+         FHlinkedList<MatNode> referenceRow = rows.get(a);
+         for(int b = start; b <= length; b++) {
+            ListIterator<MatNode> iteration = referenceRow.listIterator();
+            while(iteration.hasNext()) {
+               currentNode = iteration.next();
+               if(currentNode.col == b) {
+                  if(currentNode.data == null) {
+                     System.out.print(defaultValueString);
+                     internalCondition = true;
+                  }
+                  else {
+                     System.out.print(String.format("%6.1f", currentNode.data));
+                     internalCondition = true;
+                  }
+               }
+            }
+            if(!internalCondition) {
+               System.out.print(defaultValueString);
+            }
+            internalCondition = false;
+         }
+         System.out.println();
+      }
+   }
+
+   /**
+    * A deep copy of calling Sparse Matrix
+    * @return copySparse       Sparse Matrix copy
+    * @throws CloneNotSupportedException
+    */
+   protected Object clone()  {
+      SparseMat<E> copySparse;
+      int callingObjectSize = this.rowSize;
+      MatNode currentOldNode, newNode;
+      try {
+         // Shallow copy & instantiate new ArrayList
+         copySparse = (SparseMat<E>)super.clone();
+         copySparse.rows = new FHarrayList<>(callingObjectSize);
+         FHlinkedList<MatNode> list;
+         for(int a = 0; a < callingObjectSize; a++) {
+            list = new FHlinkedList<>();
+            copySparse.rows.add(list);
+         }
+         for(int a = 0; a < callingObjectSize; a++) { // Deep copy of Nodes
+            FHlinkedList<MatNode> referenceOldMat = this.rows.get(a);
+            FHlinkedList<MatNode> referenceNewMat = copySparse.rows.get(a);
+            ListIterator<MatNode> iteration = referenceOldMat.listIterator();
+            while(iteration.hasNext()) {
+               currentOldNode = iteration.next();
+               newNode = (MatNode)currentOldNode.clone();
+               referenceNewMat.add(newNode);
+            }
+         }
+      }
+      catch(CloneNotSupportedException e) {
+         return null;
+      }
+      return copySparse;
+   }
+
+   /**
+    * One object of this inner protected class represents
+    * the column index and data value
+    */
+   protected class MatNode implements Cloneable {
+      // protected enables us to safely make col/data public
+      public int col;
+      public E data;
+
+      // we need a default constructor for lists
+      MatNode() {
+         col = 0;
+         data = null;
+      }
+
+      MatNode(int cl, E dt) {
+         col = cl;
+         data = dt;
+      }
+
+      public Object clone() throws CloneNotSupportedException {
+         // shallow copy
+         MatNode newObject = (MatNode)super.clone();
+         return newObject;
+      }
+   }
+
+   /**
+    * Testing the validity of index given from client is not < 0
+    * @param index       Number of desired index
+    * @return validity       Validity of index
+    */
+   public boolean validIndex(int index) {
+      boolean validity = false;
+
+      // First validation
+      if(!((index < 1)))
+         validity = true;
+
+      return validity;
+   }
+}
+
+/*----------------------RUNS----------------------
+-----Part A----
+-----Show Sub Square Before Mutators----
+   0.0   0.0   0.0   0.0   0.0   0.0   0.0   0.0   0.0   0.0   0.0   0.0
+   0.0   0.0   0.0   0.0   0.0   0.0   0.0   0.0   0.0   0.0   0.0   0.0
+   0.0   0.0   0.0   0.0   0.0   0.0   0.0   0.0   0.0   0.0   0.0   0.0
+   0.0   0.0   0.0   0.0   0.0   0.0   0.0   0.0   0.0   0.0   0.0   0.0
+   0.0   0.0   0.0   0.0   0.0   0.0   0.0   0.0   0.0   0.0   0.0   0.0
+   0.0   0.0   0.0   0.0   0.0   0.0   0.0   0.0   0.0   0.0   0.0   0.0
+   0.0   0.0   0.0   0.0   0.0   0.0   0.0   0.0   0.0   0.0   0.0   0.0
+   0.0   0.0   0.0   0.0   0.0   0.0   0.0   0.0   0.0   0.0   0.0   0.0
+   0.0   0.0   0.0   0.0   0.0   0.0   0.0   0.0   0.0   0.0   0.0   0.0
+   0.0   0.0   0.0   0.0   0.0   0.0   0.0   0.0   0.0   0.0   0.0   0.0
+   0.0   0.0   0.0   0.0   0.0   0.0   0.0   0.0   0.0   0.0   0.0   0.0
+   0.0   0.0   0.0   0.0   0.0   0.0   0.0   0.0   0.0   0.0   0.0   0.0
+
+-----Show Sub Square After Mutators----
+   0.0   0.0   0.0   0.0   0.0   0.0   0.0   0.0   0.0   0.0   0.0   0.0
+   0.0   1.0   0.0   0.0 -10.0   0.0   0.0   0.0   0.0   0.0   0.0   0.0
+   0.0   0.0   2.0   0.0 -20.0   0.0   0.0   0.0   0.0   0.0   0.0   0.0
+   0.0   0.0   0.0   3.0 -30.0   0.0   0.0   0.0   0.0   0.0   0.0   0.0
+   0.0  10.0  20.0  30.0 -40.0  50.0  60.0  70.0  80.0  90.0   0.0   0.0
+   0.0   0.0   0.0   0.0 -50.0   5.0   0.0   0.0   0.0   0.0   0.0   0.0
+   0.0   0.0   0.0   0.0 -60.0   0.0   6.0   0.0   0.0   0.0   0.0   0.0
+   0.0   0.0   0.0   0.0 -70.0   0.0   0.0   7.0   0.0   0.0   0.0   0.0
+   0.0   0.0   0.0   0.0 -80.0   0.0   0.0   0.0   8.0   0.0   0.0   0.0
+   0.0   0.0   0.0   0.0 -90.0   0.0   0.0   0.0   0.0   9.0   0.0   0.0
+   0.0   0.0   0.0   0.0   0.0   0.0   0.0   0.0   0.0   0.0   0.0   0.0
+   0.0   0.0   0.0   0.0   0.0   0.0   0.0   0.0   0.0   0.0   0.0   0.0
+-----Accessing Mutators----
+Row 4, Column 4 : -40.0
+Row 9, Column 4 : -90.0
+Row 11, Column 8 : 0.0
+Out-of-bound range accessor
+-----Bounds Checking----
+Out-of-bound row 100001 try : false
+Out-of-bound column 100021 try : false
+Out-of-bound row -100 & column 100051 try : false
+-------End of Testing------
+
+----PART B----
+-----Show Sub Square mat 2nd mutation----
+   1.0   0.0   0.0   0.0 -10.0   0.0   0.0   0.0   0.0   0.0   0.0   0.0
+   0.0   1.0   0.0   0.0 -10.0   0.0   0.0   0.0   0.0   0.0   0.0   0.0
+   0.0   0.0   1.0   0.0 -10.0   0.0   0.0   0.0   0.0   0.0   0.0   0.0
+   0.0   0.0   0.0   1.0 -10.0   0.0   0.0   0.0   0.0   0.0   0.0   0.0
+  10.0  10.0  10.0  10.0 -10.0  10.0  10.0  10.0  10.0  10.0   0.0   0.0
+   0.0   0.0   0.0   0.0 -10.0   1.0   0.0   0.0   0.0   0.0   0.0   0.0
+   0.0   0.0   0.0   0.0 -10.0   0.0   1.0   0.0   0.0   0.0   0.0   0.0
+   0.0   0.0   0.0   0.0 -10.0   0.0   0.0   1.0   0.0   0.0   0.0   0.0
+   0.0   0.0   0.0   0.0 -10.0   0.0   0.0   0.0   1.0   0.0   0.0   0.0
+   0.0   0.0   0.0   0.0 -10.0   0.0   0.0   0.0   0.0   1.0   0.0   0.0
+   0.0   0.0   0.0   0.0   0.0   0.0   0.0   0.0   0.0   0.0   0.0   0.0
+   0.0   0.0   0.0   0.0   0.0   0.0   0.0   0.0   0.0   0.0   0.0   0.0
+
+-----Show Sub Square mat2 clone unchanged----
+   0.0   0.0   0.0   0.0   0.0   0.0   0.0   0.0   0.0   0.0   0.0   0.0
+   0.0   1.0   0.0   0.0 -10.0   0.0   0.0   0.0   0.0   0.0   0.0   0.0
+   0.0   0.0   2.0   0.0 -20.0   0.0   0.0   0.0   0.0   0.0   0.0   0.0
+   0.0   0.0   0.0   3.0 -30.0   0.0   0.0   0.0   0.0   0.0   0.0   0.0
+   0.0  10.0  20.0  30.0 -40.0  50.0  60.0  70.0  80.0  90.0   0.0   0.0
+   0.0   0.0   0.0   0.0 -50.0   5.0   0.0   0.0   0.0   0.0   0.0   0.0
+   0.0   0.0   0.0   0.0 -60.0   0.0   6.0   0.0   0.0   0.0   0.0   0.0
+   0.0   0.0   0.0   0.0 -70.0   0.0   0.0   7.0   0.0   0.0   0.0   0.0
+   0.0   0.0   0.0   0.0 -80.0   0.0   0.0   0.0   8.0   0.0   0.0   0.0
+   0.0   0.0   0.0   0.0 -90.0   0.0   0.0   0.0   0.0   9.0   0.0   0.0
+   0.0   0.0   0.0   0.0   0.0   0.0   0.0   0.0   0.0   0.0   0.0   0.0
+   0.0   0.0   0.0   0.0   0.0   0.0   0.0   0.0   0.0   0.0   0.0   0.0
+-----Accessing Mutators----
+Row 9, Column 4 : -90.0
+Row 8, Column 4 : -80.0
+Row 7, Column 4 : -70.0
+Out-of-bound range accessor
+-----Bounds Checking----
+Out-of-bound row 100101 try : false
+Out-of-bound column 110000 try : false
+Out-of-bound row -99 & column 123003 try : false
+-------End of Testing------
+
+ ---------------------END OF RUN----------------*/

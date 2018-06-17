@@ -1,0 +1,270 @@
+package shellshort_gap;
+
+import cs_1c.*;
+import java.text.NumberFormat;
+import java.util.*;
+
+public class Foothill {
+
+   public static void main(String[] args) {
+
+      final int ARRAY_SIZE = 200000;
+
+      Integer[] arrayOfInts1 = new Integer[ARRAY_SIZE];
+      Integer[] arrayOfInts2 = new Integer[ARRAY_SIZE];
+      Integer[] arrayOfInts3 = new Integer[ARRAY_SIZE];
+      Integer[] arrayOfInts4 = new Integer[ARRAY_SIZE];
+      Integer[] arrayOfInts5 = new Integer[ARRAY_SIZE];
+      Integer[] arrayOfInts6 = new Integer[ARRAY_SIZE];
+
+      int[] gapArray = { 1, 2, 4, 8, 16, 32, 64, 128, 256, 512, 1024,
+            2048, 4096, 8192, 16384, 32768, 65536, 131072, 262144, 524288,
+            1048576};
+      int[] sedgewickArray = new int[30]; // To be computed using formulas
+      int[] hibbardArray = new int[30];
+      int[] sedgewickPrefixedArray = new int[30];
+      int[] prattArray = new int[30];
+
+      // Compute Sedgewick Sequence based on textbook p.278
+      sedgewickFormula(sedgewickArray);
+
+      // Compute Hibbard's sequence based on textbook p.277
+      for(int a = 0; a < hibbardArray.length; a++) {
+         hibbardArray[a] = (int) Math.pow(2,a) - 1;
+      }
+
+      // Compute Sedgewick prefixed formula with 1 (formula from wiki)
+      int valueValidation;
+      sedgewickPrefixedArray[0] = 1;
+      for(int b = 1; b < sedgewickPrefixedArray.length; b++) {
+         valueValidation = (int) Math.pow(4,b)
+               + 3 * (int) Math.pow(2,b-1) + 1;
+         if(valueValidation < 0) { // Get rid of negative values
+            valueValidation *= -1;
+         }
+         sedgewickPrefixedArray[b] = valueValidation;
+      }
+
+      // Compute Pratt's sequence (formula from wiki)
+      // Constraints, not greater than ARRAY_SIZE/3 & starts at 1
+      for(int c = 1; c < prattArray.length && c < ARRAY_SIZE / 3; c++) {
+         prattArray[c] = (int) (Math.pow(3,c) - 1) / 2;
+      }
+
+      // Fill distinct arrays with identical random values to compare gaps
+      Random rand = new Random();
+
+      int randomInteger;
+      long startTime, endTime, elapsedTime;
+
+      for(int a = 0; a < ARRAY_SIZE; a++) {
+         // Generate random value from 0 - 9999
+         randomInteger = rand.nextInt(ARRAY_SIZE);
+         arrayOfInts1[a] = randomInteger;
+         arrayOfInts2[a] = randomInteger;
+         arrayOfInts3[a] = randomInteger;
+         arrayOfInts4[a] = randomInteger;
+         arrayOfInts5[a] = randomInteger;
+         arrayOfInts6[a] = randomInteger;
+      }
+
+      // Formatting output to 4 decimal digits
+      NumberFormat tidy = NumberFormat.getInstance(Locale.US);
+      tidy.setMaximumFractionDigits(4);
+
+
+      // Research starts here, Implemented 6 different gap sequences ---------
+
+      // ShellSort1 Sorting starts here --------------------------------------
+      startTime = System.nanoTime();
+
+      FHsort.shellSort1(arrayOfInts3);
+
+      endTime = System.nanoTime();
+
+      elapsedTime = endTime - startTime;
+      System.out.println("ShellSort1() Elapsed Time: "
+            + tidy.format( elapsedTime / 1e9)
+            + " seconds.");
+
+
+      // Gap Array Sorting starts here --------------------------------------
+      startTime = System.nanoTime();
+
+      shellSortX(arrayOfInts1, gapArray);
+
+      endTime = System.nanoTime();
+
+      elapsedTime = endTime - startTime;
+      System.out.println("Gap Sequence Array Sort Elapsed Time: "
+            + tidy.format( elapsedTime / 1e9)
+            + " seconds.");
+
+
+      // Sedgewick Array Sorting starts here ---------------------------------
+      startTime = System.nanoTime();
+
+      shellSortX(arrayOfInts2, sedgewickArray);
+
+      endTime = System.nanoTime();
+
+      elapsedTime = endTime - startTime;
+      System.out.println("Sedgewick Array Sort Elapsed Time: "
+            + tidy.format( elapsedTime / 1e9)
+            + " seconds.");
+
+
+      // Hibbard's Array Sorting starts here ---------------------------------
+      startTime = System.nanoTime();
+
+      shellSortX(arrayOfInts4, hibbardArray);
+
+      endTime = System.nanoTime();
+
+      elapsedTime = endTime - startTime;
+      System.out.println("Hibbard's Array Sort Elapsed Time: "
+            + tidy.format( elapsedTime / 1e9)
+            + " seconds.");
+
+
+      // Sedgewick prefixed with 1 formula Array Sorting starts here ---------
+      startTime = System.nanoTime();
+
+      shellSortX(arrayOfInts5, sedgewickPrefixedArray);
+
+      endTime = System.nanoTime();
+
+      elapsedTime = endTime - startTime;
+      System.out.println("Sedgewick Prefixed Array Sort Elapsed Time: "
+            + tidy.format( elapsedTime / 1e9)
+            + " seconds.");
+
+
+      // Pratt's Sequence Array Sorting starts here ---------
+      startTime = System.nanoTime();
+
+      shellSortX(arrayOfInts6, prattArray);
+
+      endTime = System.nanoTime();
+
+      elapsedTime = endTime - startTime;
+      System.out.println("Pratt's Array Sort Elapsed Time: "
+            + tidy.format( elapsedTime / 1e9)
+            + " seconds.");
+
+   }
+
+   /**
+    * A Generic Method that implements ShellSort Algorithm.
+    * @param array         Array to be sorted
+    * @param gapSequence   Sequences of gaps for shell sorting
+    * @param <E>           Generic data type
+    */
+   public static < E extends Comparable< ? super E > >
+   void shellSortX(E[] array, int[] gapSequence) {
+      int k, pos, arraySize,gapSequenceSize, gap;
+      int startingGap = 0;
+      E tmp;
+
+      arraySize = array.length;
+      gapSequenceSize = gapSequence.length;
+
+      // Traverse the gapSequence to find the largest gap < array.length
+      for(int b = gapSequenceSize - 1; b >= 0; b--) {
+         if(gapSequence[b] < arraySize) {
+            startingGap = b;
+            break;
+         }
+      }
+
+      for (gap = gapSequence[startingGap];  startingGap >= 0 ;
+           gap = gapSequence[startingGap--])
+         for(pos = gap; pos < arraySize; pos++ )
+         {
+            tmp = array[pos];
+            for(k = pos; k >= gap
+                  && tmp.compareTo(array[k-gap]) < 0; k -= gap)
+               array[k] = array[k-gap];
+            array[k] = tmp;
+         }
+   }
+
+   /**
+    * Generate Robert Sedgewick sequence algorithm.
+    * @param sedgewickSequence      Array sequence
+    */
+   public static void sedgewickFormula(int[] sedgewickSequence) {
+
+      ArrayList<Integer> formulaOne = new ArrayList<>();
+      ArrayList<Integer> formulaTwo = new ArrayList<>();
+      int sedgewickValue;
+
+      for(int c = 0; c < sedgewickSequence.length; c++) {
+         sedgewickValue = (int)(9 * Math.pow(4,c) - 9 * Math.pow(2,c) + 1);
+         formulaOne.add(sedgewickValue);
+      }
+
+      for(int d = 0; d < sedgewickSequence.length; d++) {
+         // Skipping the first two negative value hence the (d + 2)
+         sedgewickValue = (int)(Math.pow(4,d + 2) - 3
+               * Math.pow(2,d + 2) + 1);
+         formulaTwo.add( sedgewickValue );
+      }
+
+      ListIterator<Integer> iterateOne = formulaOne.listIterator();
+      ListIterator<Integer> iterateTwo = formulaTwo.listIterator();
+
+      // Set the first formula as the even element
+      // and second formula as the odd element
+      for(int e = 0; e < sedgewickSequence.length; e++) {
+         if(e % 2 == 0) {
+            sedgewickSequence[e] = iterateOne.next();
+         }
+         else {
+            sedgewickSequence[e] = iterateTwo.next();
+         }
+      }
+   }
+}
+
+/*--------------------------------Run Starts Here-----------------------------
+
+==========================================================================================
+                              Analyzing ShellSort Gaps
+           Array size ranging from 25-200k and Sorting are measured in seconds
+==========================================================================================
+                     25000    50000    75000    100000   125000   150000   175000   200000
+Gap Sequence         0.0462   0.0688   0.0988   0.1662   0.2263   0.3737   0.3051   0.3569
+ShellSort1           0.0234   0.0496   0.0771   0.0859   0.1175   0.1991   0.1556   0.1974
+Hibbard              0.0094   0.037    0.0607   0.0736   0.09     0.1101   0.134    0.2084
+Sedgewick Prefixed   0.0061   0.0346   0.0395   0.0408   0.0672   0.0843   0.1116   0.1161
+Sedgewick Textbook   0.01     0.0251   0.031    0.0519   0.0719   0.0829   0.0902   0.1396
+Pratt                0.0075   0.0215   0.0413   0.0519   0.0826   0.175    0.1214   0.1499
+==========================================================================================
+
+1.) Why does Shell's gap sequence implied by shellSort1() give a different timing result than
+the explicit array described above and passed to shellSortX()? Which is faster and why?
+
+   The Shell's gap sequence gives a faster timing result than the explicit gap sequence array
+provided above because it has smaller number of elements in the left side of the array in
+position p. Thus, this reduces the amount of compares and moves that it has to make an
+insertion in the growing left sub list. If we recall, that the ShellSort1() have a O(N^2)
+time complexity when the list is not sorted beforehand. This is faster than the gap sequence
+model because it's starting on evaluating comparison in the middle of the array. In comparison,
+the gap sequence starts at gap 8192 and decreasing it by half for every iteration. This will
+bring a longer time for the sorting algorithm to move to the left to find a suitable spot
+if swapping of values is needed. If we see from the table both has similar pattern of doubling
+their running time for every double size array. However, again the gap sequence starts at 8192
+gap thus taking more time for the sorting to find the correct location for swapping values.
+
+   If you see from the table above, the Sedgewick prefixed formula (4^k + 3 * 2^(k-1) + 1)
+beat the rest of the algorithm 4 times at array sizes 25,000, 100,000, 125,000, and 200,000.
+With the other Sedgewick (textbook formula) algorithm as the runner up winning 3 times at
+array size 75,000, 150,000 and 175,000. Both of the array has a time complexity of O(N^(4/3)),
+however the 1st Sedgewick formula ran faster due to its combination of prime and non-prime
+sequence. This allows a more diverse way of pre-sorting the array before sending it to the
+shell sort at the end. If we recall back, the shell sort method will have a time complexity
+of O(N) if the array is nearly sorted before hand. Thus, this give both algorithm the advantage
+of having a fast running-time in comparison the other algorithms.
+
+ *--------------------------------Run Ends Here-----------------------------*/

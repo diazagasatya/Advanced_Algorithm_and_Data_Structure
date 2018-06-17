@@ -1,0 +1,747 @@
+
+import cs_1c.*;
+import java.text.*;
+import java.util.*;
+
+// ----------- wrapper classes -------------
+
+class EBookCompInt implements Comparable<Integer> {
+   EBookEntry data;
+
+   // Public Methods--------
+   public EBookCompInt(EBookEntry eBookObject) { data = eBookObject; }
+   public String toString() { return data.toString(); }
+
+   // Compare to Method for find key implementation
+   public int compareTo(Integer eBookNumber) {
+      return data.getETextNum() - eBookNumber;
+   }
+
+   // let equals() preserve the equals() provided by embedded data
+   public boolean equals(EBookCompInt eBookObject) {
+      return data.equals(eBookObject.data);
+   }
+
+   public int hashCode() {
+      return data.getETextNum();
+   }
+}
+
+class EBookCompString implements Comparable<String> {
+   EBookEntry data;
+
+   // Public Methods---------
+   public EBookCompString( EBookEntry eBookObject) { data = eBookObject; }
+   public String toString() { return data.toString(); }
+
+   // Compare to Method for find key implementation
+   public int compareTo(String eBookName) {
+      return data.getTitle().compareTo(eBookName);
+   }
+
+   // let equals() preserve the equals() provided by embedded data
+   public boolean equals(EBookCompString eBookObject) {
+      return data.equals(eBookObject.data);
+   }
+
+   public int hashCode() {
+      return data.getTitle().hashCode();
+   }
+}
+
+//------------------------------------------------------
+public class Foothill
+{
+
+   public static final int NUM_RANDOM_INDICES = 25;
+
+   // -------  main --------------
+   public static void main(String[] args) throws Exception
+   {
+
+      FHhashQPwFind< Integer, EBookCompInt> hashTable
+            = new FHhashQPwFind<Integer, EBookCompInt>();
+
+      // FHhashQPwFind< String, EBookCompString> hashTable
+      //    = new FHhashQPwFind<String, EBookCompString>();
+
+      // create a QP hash table of EBooks ...
+      EBookEntryReader bookInput = new EBookEntryReader("catalog-short4.txt");
+
+      // generate some random indices into the EBookEntryReader vector ...
+      Random randomInt = new Random();
+
+      // insert all books into the hash table (if SORT_BY_ID) or fewer
+      // (If SORT_BY_CREATOR) ...
+      int sizeOfCatalog = bookInput.getNumBooks();
+      for(int a = 0; a < sizeOfCatalog; a++) {
+         // String key value
+         // EBookCompString wrappingObject;
+         // wrappingObject = new EBookCompString(bookInput.getBook(a));
+
+         // Integer key value
+         EBookCompInt wrappingObject;
+         wrappingObject = new EBookCompInt(bookInput.getBook(a));
+
+         hashTable.insert(wrappingObject);
+      }
+
+      // display NUM_RANDOM_INDICES books from array ...
+      int[] randomIndices = new int[NUM_RANDOM_INDICES];
+      for(int b = 0; b < NUM_RANDOM_INDICES; b++) {
+         randomIndices[b] = randomInt.nextInt(sizeOfCatalog);
+      }
+
+      // attempt to find on the selected key
+      // String key value
+      // EBookCompString bookResult;
+
+      // Int key value
+      EBookCompInt bookResult;
+
+      NumberFormat formatNumber = NumberFormat.getInstance(Locale.US);
+      formatNumber.setMaximumFractionDigits(5);
+      Date startTime, endTime;
+
+      startTime = new Date();
+
+      System.out.println( "The same random books from the hash table " );
+      for (int k = 0; k < NUM_RANDOM_INDICES; k++)
+      {
+         // Show title of book for String key value testing
+         // System.out.println("Book Title: "
+         //      + bookInput.getBook(randomIndices[k]).getTitle());
+
+         // Show ETextNum for Integer key value testing
+         System.out.println("EBook E text number: "
+               + bookInput.getBook(randomIndices[k]).getETextNum());
+
+         try
+         {
+            // String key value
+            // bookResult = hashTable.find(
+            //    bookInput.getBook(randomIndices[k]).getTitle() );
+
+            // Int key value
+            bookResult = hashTable.find(
+                  bookInput.getBook(randomIndices[k]).getETextNum() );
+
+            System.out.println("Book found, success! : \n" + bookResult);
+
+         }
+         catch (NoSuchElementException e)
+         {
+            System.out.println("not found");
+         }
+         System.out.println();
+      }
+
+      endTime = new Date();
+      long elapsedTimeProbing = endTime.getTime() - startTime.getTime();
+
+      System.out.println("Elapsed time for " + NUM_RANDOM_INDICES
+            + " times Quadratic Probing-----");
+      System.out.println("Elapsed Time: "
+            + formatNumber.format(elapsedTimeProbing / 1000.) + " seconds");
+      System.out.println("On Average it took "
+            + (formatNumber.format((elapsedTimeProbing/ 1000.)
+            / NUM_RANDOM_INDICES)) + " using quadratic probing\n\n");
+
+      System.out.println("Test for failures exceptions----------------");
+      // test known successes failures exceptions:
+      try
+      {
+         // String key value
+         // bookResult = hashTable.find( "Jack Kerouac" );
+
+         // Integer key value
+         bookResult = hashTable.find( -3 );
+         System.out.println("Book found, success! : \n" + bookResult);
+
+      }
+      catch (NoSuchElementException e)
+      {
+         System.out.println("not found");
+      }
+
+      // more failures
+      try
+      {
+         // String key value
+         // bookResult = hashTable.find( "Diaz Agasatya");
+
+         // Integer key value
+         bookResult = hashTable.find(sizeOfCatalog + 50);
+         System.out.println("Book found, success! : \n" + bookResult);
+      }
+      catch (NoSuchElementException e)
+      {
+         System.out.println("not found");
+      }
+
+      try
+      {
+         // String key value
+         // bookResult = hashTable.find( "Gal Gadot");
+
+         // Integer key value
+         bookResult = hashTable.find(sizeOfCatalog + sizeOfCatalog);
+         System.out.println("Book found, success! : \n" + bookResult);
+      }
+      catch (NoSuchElementException e)
+      {
+         System.out.println("not found");
+      }
+   }
+}
+
+/**
+ * Quadratic Probing with find() for hash table.
+ * Created by diazagasatya on 11/6/17.
+ */
+class FHhashQPwFind<KeyType, E extends Comparable<KeyType> >
+      extends FHhashQP<E> {
+
+   // Public Methods Starts Here--------------------------------
+   /**
+    * Returns the found object, else throws a NoSuchElementException.
+    * @param key      Key Value to find position
+    * @return foundObject      Corresponding object from key value
+    */
+   public E find(KeyType key) {
+
+      E foundObject;
+      boolean findValidation;
+
+      findValidation = mArray[findPosKey(key)].state == ACTIVE;
+
+      if(findValidation) {
+         foundObject = mArray[findPosKey(key)].data;
+      }
+      else {
+         throw new NoSuchElementException();
+      }
+
+      return foundObject;
+   }
+
+   // Private (Protected) Methods Starts Here------------------
+   /**
+    * Creates a hash code based upon given key value.
+    * @param key      Key Value to hash
+    * @return hashVal      Index of the object from given key value
+    */
+   protected int myHashKey(KeyType key) {
+
+      int hashVal;
+
+      hashVal = key.hashCode() % mTableSize;
+      if(hashVal < 0)
+         hashVal += mTableSize;
+
+      return hashVal;
+   }
+
+   /**
+    * Finding the position of the object based on the key by hashing
+    * @param key      Key Value to hash
+    * @return index      Position of the requested object
+    */
+   protected int findPosKey(KeyType key) {
+
+      int kthOddNum = 1;
+      int index = myHashKey(key);
+
+      while ( mArray[index].state != EMPTY
+            && mArray[index].data.compareTo(key) != 0 )
+      {
+         index += kthOddNum; // k squared = (k-1) squared + kth odd #
+         kthOddNum += 2;     // compute next odd #
+         if ( index >= mTableSize )
+            index -= mTableSize;
+      }
+      return index;
+   }
+
+
+}
+
+/*---------------------------String Key Value Run-----------------------------
+The same random books from the hash table
+Book Title: The Raid on the Termites
+Book found, success! :
+   # 27248  ---------------
+   "The Raid on the Termites"
+   by Ernst, Paul, 1899-1985
+   re: Science fiction
+
+
+
+Book Title: A Child's Garden of Verses
+Book found, success! :
+   # 28722  ---------------
+   "A Child's Garden of Verses"
+   by Stevenson, Robert Louis, 1850-1894
+   re: Children's poetry, English
+
+
+
+Book Title: BilingualismAddress delivered before the Quebec Canadian Club, atQuebec, Tuesday, March 28th, 1916
+Book found, success! :
+   # 25040  ---------------
+   "BilingualismAddress delivered before the Quebec Canadian Club, atQuebec, Tuesday, March 28th, 1916"
+   by Belcourt, N. A. (Napoléon-Antoine), 1860-1932
+   re: Speeches, addresses, etc.
+
+
+
+Book Title: When Dreams Come True
+Book found, success! :
+   # 28593  ---------------
+   "When Dreams Come True"
+   by Brown, Ritter
+   re: PS
+
+
+
+Book Title: The DevilA Tragedy of the Heart and Conscience
+Book found, success! :
+   # 25947  ---------------
+   "The DevilA Tragedy of the Heart and Conscience"
+   by O'Brien, Joseph
+   re: PH
+
+
+
+Book Title: Survival Tactics
+Book found, success! :
+   # 24966  ---------------
+   "Survival Tactics"
+   by Sevcik, Al
+   re: Short stories
+
+
+
+Book Title: The Pools of Silence
+Book found, success! :
+   # 26889  ---------------
+   "The Pools of Silence"
+   by Stacpoole, H. De Vere (Henry De Vere), 1863-1951
+   re: Safaris -- Congo (Democratic Republic) -- Fiction
+
+
+
+Book Title: In the High ValleyBeing the fifth and last volume of the Katy Did series
+Book found, success! :
+   # 28724  ---------------
+   "In the High ValleyBeing the fifth and last volume of the Katy Did series"
+   by Coolidge, Susan, 1835-1905
+   re: PZ
+
+
+
+Book Title: Mr. Rabbit's WeddingHollow Tree Stories
+Book found, success! :
+   # 28193  ---------------
+   "Mr. Rabbit's WeddingHollow Tree Stories"
+   by Paine, Albert Bigelow, 1861-1937
+   re: Animals -- Juvenile fiction
+
+
+
+Book Title: Castle Nowhere
+Book found, success! :
+   # 6436  ---------------
+   "Castle Nowhere"
+   by Woolson, Constance Fenimore, 1840-1894
+   re: (no data found)
+
+
+
+Book Title: Der Judenstaat. English
+Book found, success! :
+   # 25282  ---------------
+   "Der Judenstaat. English"
+   by Herzl, Theodor, 1860-1904
+   re: Zionism
+
+
+
+Book Title: The Present State of Virginia
+Book found, success! :
+   # 29055  ---------------
+   "The Present State of Virginia"
+   by Jones, Hugh, 1669-1760
+   re: Indians of North America -- Virginia -- Early works to 1800
+
+
+
+Book Title: Careless KateA Story for Little Folks
+Book found, success! :
+   # 25427  ---------------
+   "Careless KateA Story for Little Folks"
+   by Optic, Oliver, 1822-1897
+   re: Conduct of life -- Juvenile fiction
+
+
+
+Book Title: The Great K. &amp; A. Robbery
+Book found, success! :
+   # 25333  ---------------
+   "The Great K. &amp; A. Robbery"
+   by Ford, Paul Leicester, 1865-1902
+   re: Train robberies -- Fiction
+
+
+
+Book Title: The Radio Boys Trailing a Voiceor, Solving a Wireless Mystery
+Book found, success! :
+   # 25858  ---------------
+   "The Radio Boys Trailing a Voiceor, Solving a Wireless Mystery"
+   by Chapman, Allen
+   re: Boys -- Juvenile fiction
+
+
+
+Book Title: Astounding Stories, March, 1931
+Book found, success! :
+   # 30166  ---------------
+   "Astounding Stories, March, 1931"
+   by Various
+   re: Science fiction -- Periodicals
+
+
+
+Book Title: Spare Hours
+Book found, success! :
+   # 27153  ---------------
+   "Spare Hours"
+   by Brown, John, 1810-1882
+   re: English essays
+
+
+
+Book Title: Young Alaskans in the Far North
+Book found, success! :
+   # 28694  ---------------
+   "Young Alaskans in the Far North"
+   by Hough, Emerson, 1857-1923
+   re: Alaska -- Juvenile fiction
+
+
+
+Book Title: The Star Hyacinths
+Book found, success! :
+   # 26292  ---------------
+   "The Star Hyacinths"
+   by Schmitz, James H., 1911-1981
+   re: Science fiction
+
+
+
+Book Title: Freedom In ServiceSix Essays on Matters Concerning Britain's Safety and Good Government
+Book found, success! :
+   # 25522  ---------------
+   "Freedom In ServiceSix Essays on Matters Concerning Britain's Safety and Good Government"
+   by Hearnshaw, F. J. C. (Fossey John Cobb), 1869-1946
+   re: Great Britain -- Politics and government
+
+
+
+Book Title: The Hunted Heroes
+Book found, success! :
+   # 25627  ---------------
+   "The Hunted Heroes"
+   by Silverberg, Robert, 1935-
+   re: Science fiction, American
+
+
+
+Book Title: The Problem of China
+Book found, success! :
+   # 13940  ---------------
+   "The Problem of China"
+   by Russell, Bertrand, 1872-1970
+   re: (no data found)
+
+
+
+Book Title: McClure's Magazine, Vol 31, No 2, June 1908
+Book found, success! :
+   # 27699  ---------------
+   "McClure's Magazine, Vol 31, No 2, June 1908"
+   by Various
+   re: (no data found)
+
+
+
+Book Title: The Launch Boys' Adventures in Northern Waters
+Book found, success! :
+   # 25849  ---------------
+   "The Launch Boys' Adventures in Northern Waters"
+   by Ellis, Edward Sylvester, 1840-1916
+   re: Detective and mystery stories
+
+
+
+Book Title: The Quest of the Silver FleeceA Novel
+Book found, success! :
+   # 15265  ---------------
+   "The Quest of the Silver FleeceA Novel"
+   by Du Bois, W. E. B. (William Edward Burghardt), 1868-1963
+   re: (no data found)
+
+
+
+Elapsed time for 25 times Quadratic Probing-----
+Elapsed Time: 0.002 seconds
+On Average it took 0.00008 using quadratic probing
+
+
+Test for failures exceptions----------------
+not found
+not found
+not found
+
+Process finished with exit code 0
+
+------------------------Integer Key Value Run Starts-----------------------
+The same random books from the hash table
+EBook E text number: 30134
+Book found, success! :
+   # 30134  ---------------
+   "Elementary Theosophy"
+   by Rogers, L. W. (Louis William), 1859-1953
+   re: Theosophy
+
+
+
+EBook E text number: 27952
+Book found, success! :
+   # 27952  ---------------
+   "The Enchanted CastleA Book of Fairy Tales from Flowerland"
+   by (no data found)
+   re: Fairy tales
+
+
+
+EBook E text number: 28935
+Book found, success! :
+   # 28935  ---------------
+   "Captain Dieppe"
+   by Hope, Anthony, 1863-1933
+   re: PR
+
+
+
+EBook E text number: 12574
+Book found, success! :
+   # 12574  ---------------
+   "The Mirror of Literature, Amusement, and InstructionVolume 20, No. 556, July 7, 1832"
+   by Various
+   re: (no data found)
+
+
+
+EBook E text number: 28717
+Book found, success! :
+   # 28717  ---------------
+   "Wee Wifie"
+   by Carey, Rosa Nouchette, 1840-1909
+   re: PR
+
+
+
+EBook E text number: 25816
+Book found, success! :
+   # 25816  ---------------
+   "With Airship and SubmarineA Tale of Adventure"
+   by Collingwood, Harry, 1851-1922
+   re: Submarines (Ships) -- Juvenile fiction
+
+
+
+EBook E text number: 285
+Book found, success! :
+   # 285  ---------------
+   "The Lost Continent"
+   by Hyne, Charles John Cutcliffe Wright, 1866-1944
+   re: Atlantis -- Fiction
+
+
+
+EBook E text number: 29888
+Book found, success! :
+   # 29888  ---------------
+   "The Hunting of the Snarkan Agony, in Eight Fits"
+   by Carroll, Lewis, 1832-1898
+   re: Nonsense verses, English
+
+
+
+EBook E text number: 26466
+Book found, success! :
+   # 26466  ---------------
+   "Idle Thoughts of an Idle Fellow"
+   by Jerome, Jerome K. (Jerome Klapka), 1859-1927
+   re: Essays
+
+
+
+EBook E text number: 22294
+Book found, success! :
+   # 22294  ---------------
+   "Robert Louis Stevenson"
+   by Black, Margaret Moyes
+   re: Stevenson, Robert Louis, 1850-1894
+
+
+
+EBook E text number: 22841
+Book found, success! :
+   # 22841  ---------------
+   "Mr. Joseph Hanson, The Haberdasher"
+   by Mitford, Mary Russell, 1787-1855
+   re: (no data found)
+
+
+
+EBook E text number: 26800
+Book found, success! :
+   # 26800  ---------------
+   "Hortus VitaeEssays on the Gardening of Life"
+   by Lee, Vernon, 1856-1935
+   re: Essays
+
+
+
+EBook E text number: 29073
+Book found, success! :
+   # 29073  ---------------
+   "Rosinante to the Road Again"
+   by Dos Passos, John, 1896-1970
+   re: Spain
+
+
+
+EBook E text number: 25400
+Book found, success! :
+   # 25400  ---------------
+   "Colleges in America"
+   by Barker, John Marshall, 1849-1928
+   re: Universities and colleges -- United States
+
+
+
+EBook E text number: 28678
+Book found, success! :
+   # 28678  ---------------
+   "The Christian Foundation, Or, Scientific and Religious Journal, Volume I, No. 12, December, 1880"
+   by Various
+   re: Religion and science -- Periodicals
+
+
+
+EBook E text number: 28045
+Book found, success! :
+   # 28045  ---------------
+   "Walls of Acid"
+   by Hasse, Henry, 1913-1977
+   re: Science fiction
+
+
+
+EBook E text number: 30139
+Book found, success! :
+   # 30139  ---------------
+   "The Beauties of the State of WashingtonA Book for Tourists"
+   by Giles, Harry F.
+   re: Washington (State) -- Guidebooks
+
+
+
+EBook E text number: 109
+Book found, success! :
+   # 109  ---------------
+   "Renascence and Other Poems"
+   by Millay, Edna St. Vincent, 1892-1950
+   re: American poetry
+
+
+
+EBook E text number: 28772
+Book found, success! :
+   # 28772  ---------------
+   "Ellen of Villenskovand Other Ballads"
+   by (no data found)
+   re: PR
+
+
+
+EBook E text number: 26224
+Book found, success! :
+   # 26224  ---------------
+   "King Lear"
+   by Shakespeare, William, 1564-1616
+   re: Tragedies
+
+
+
+EBook E text number: 28480
+Book found, success! :
+   # 28480  ---------------
+   "The Frontier"
+   by Leblanc, Maurice, 1864-1941
+   re: Detective and mystery stories, French -- Translations into English
+
+
+
+EBook E text number: 25415
+Book found, success! :
+   # 25415  ---------------
+   "Charlie Scottor, There's Time Enough"
+   by Unknown
+   re: Orphans -- Juvenile fiction
+
+
+
+EBook E text number: 25600
+Book found, success! :
+   # 25600  ---------------
+   "Bird Stories"
+   by Patch, Edith M. (Edith Marion), 1876-
+   re: Birds -- Juvenile literature
+
+
+
+EBook E text number: 26705
+Book found, success! :
+   # 26705  ---------------
+   "The Caravan Route between Egypt and Syria"
+   by Ludwig Salvator, Archduke of Austria, 1847-1915
+   re: Palestine -- Description and travel
+
+
+
+EBook E text number: 26521
+Book found, success! :
+   # 26521  ---------------
+   "Earthmen Bearing Gifts"
+   by Brown, Fredric, 1906-1972
+   re: Science fiction
+
+
+
+Elapsed time for 25 times Quadratic Probing-----
+Elapsed Time: 0.002 seconds
+On Average it took 0.00008 using quadratic probing
+
+
+Test for failures exceptions----------------
+not found
+not found
+not found
+
+Process finished with exit code 0
+
+-------------------------------End of Run--------------------------------*/
