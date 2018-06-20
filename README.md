@@ -1,6 +1,6 @@
 # Advanced_Algorithm_and_Data_Structure
-
-Algorithms & Data Structures Implemented using Java
+### Algorithms & Data Structures Implemented using Java
+10 Different Algorithm & Data Structures, below is one of my favorite!
 
 ## Stars Near Earth
 Cartesian representation of Stars Near Earth from 1 - 10 in 2 Dimensional Spaces
